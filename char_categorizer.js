@@ -24,16 +24,27 @@ class CharBuilder {
     }, {});
   }
 
-  filterCharsByFile(inputFile, params = { include: true }) {
+  filterCharsByFile(inputFile, params = { filterType: "identify" }) {
     const filterChars = this.readFile(inputFile);
     this.chars = Object.entries(this.chars).reduce((h, [py, charItems]) => {
-      h[py] = charItems.filter((char) => {
-        if (params.include) {
-          return filterChars.indexOf(char) > -1;
-        }
-        return filterChars.indexOf(char) < 0;
-      });
-      return h;
+      if (params.filterType === "identify") {
+        h[py] = charItems.map((char) => {
+          if (filterChars.indexOf(char) < 0) {
+            return `${char}*`;
+          }
+          return char;
+        });
+        return h;
+      } else {
+        h[py] = charItems.filter((char) => {
+          if (params.filterType === "include") {
+            return filterChars.indexOf(char) > -1;
+          } else if (params.filterType === "exclude") {
+            return filterChars.indexOf(char) < 0;
+          }
+        });
+        return h;
+      }
     }, {});
   }
 
@@ -82,30 +93,44 @@ class CharBuilder {
   }
 }
 
-let cb = new CharBuilder("characters.txt", "output_characters.txt");
+let cb = new CharBuilder("characters.txt", "output_characters_all.txt");
 cb.addCharsByPinYin();
-cb.filterCharsByFile("characters_sound.txt");
+cb.filterCharsByFile("characters_sound.txt", { filterType: "identify" });
+cb.addStatistics();
+cb.addToneToChars();
+cb.dumpSortedCharsToFile();
+
+cb = new CharBuilder("characters.txt", "output_characters_sound.txt");
+cb.addCharsByPinYin();
+cb.filterCharsByFile("characters_sound.txt", { filterType: "include" });
 cb.addStatistics();
 cb.addToneToChars();
 cb.dumpSortedCharsToFile();
 
 cb = new CharBuilder("characters.txt", "output_characters_glyph.txt");
 cb.addCharsByPinYin();
-cb.filterCharsByFile("characters_sound.txt", { include: false });
+cb.filterCharsByFile("characters_sound.txt", { filterType: "exclude" });
 cb.addStatistics();
 cb.addToneToChars();
 cb.dumpSortedCharsToFile();
 
-cb = new CharBuilder("characters_two.txt", "output_characters_two.txt");
+cb = new CharBuilder("characters.txt", "two_output_characters_all.txt");
 cb.addCharsByPinYin();
-cb.filterCharsByFile("characters_sound.txt");
+cb.filterCharsByFile("characters_sound.txt", { filterType: "identify" });
 cb.addStatistics();
 cb.addToneToChars();
 cb.dumpSortedCharsToFile();
 
-cb = new CharBuilder("characters_two.txt", "output_characters_glyph_two.txt");
+cb = new CharBuilder("characters_two.txt", "two_output_characters_sound.txt");
 cb.addCharsByPinYin();
-cb.filterCharsByFile("characters_sound.txt", { include: false });
+cb.filterCharsByFile("characters_sound.txt", { filterType: "include" });
+cb.addStatistics();
+cb.addToneToChars();
+cb.dumpSortedCharsToFile();
+
+cb = new CharBuilder("characters_two.txt", "two_output_characters_glyph.txt");
+cb.addCharsByPinYin();
+cb.filterCharsByFile("characters_sound.txt", { filterType: "exclude" });
 cb.addStatistics();
 cb.addToneToChars();
 cb.dumpSortedCharsToFile();
