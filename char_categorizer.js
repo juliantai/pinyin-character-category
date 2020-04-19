@@ -1,70 +1,111 @@
 var fs = require("fs");
 var pinyin = require("pinyin");
 
-function charFilter(fileName) {
-  var data = fs.readFileSync(`./${fileName}`, "utf8");
-  return data.split("\n");
-}
+class CharBuilder {
+  constructor(inputFile, outputFile) {
+    this.inputFile = inputFile;
+    this.outputFile = outputFile;
+    this.chars = {};
+    this.count = 0;
+    this.soundCount = 0;
+  }
 
-function charBuilder(fileName, outputFileName, filterFileName) {
-  try {
-    var data = fs.readFileSync(`./${fileName}`, "utf8");
-    const chars = data.split("\n");
-
-    let filterChars;
-    let soundCount = 0;
-    let count = 0;
-    if (filterFileName) {
-      filterChars = charFilter(filterFileName);
-    }
-
-    const charsByPy = chars.reduce((h, char) => {
+  addCharsByPinYin() {
+    const chars = this.readFile(this.inputFile);
+    this.chars = chars.reduce((h, char) => {
       const py = pinyin(char, { style: pinyin.STYLE_NORMAL })[0];
-      const pyTone = pinyin(char, { style: pinyin.STYLE_TONE2 })[0];
       if (py) {
         if (!h[py]) {
           h[py] = [];
         }
-        const pyToneNumber = pyTone.toString().slice(-1);
-        if (!filterChars || filterChars.indexOf(char) > -1) {
-          count += 1;
-          h[py].push(`${pyToneNumber}${char}`);
-          if (h[py].length === 1) soundCount += 1;
-        }
+        h[py].push(char);
       }
       return h;
     }, {});
+  }
 
-    const charactersToFile = Object.entries(charsByPy)
+  filterCharsByFile(inputFile, include = true) {
+    const filterChars = this.readFile(inputFile);
+    this.chars = Object.entries(this.chars).reduce((h, [py, charItems]) => {
+      h[py] = charItems.filter((char) => {
+        if (include) {
+          return filterChars.indexOf(char) > -1;
+        }
+        return filterChars.indexOf(char) < 0;
+      });
+      return h;
+    }, {});
+  }
+
+  addStatistics() {
+    Object.entries(this.chars).forEach(([py, charItems]) => {
+      this.soundCount += 1;
+      this.count += charItems.length;
+    });
+  }
+
+  addToneToChars() {
+    this.chars = Object.entries(this.chars).reduce((h, [py, charItems]) => {
+      h[py] = charItems.map((char) => {
+        const pyTone = pinyin(char, { style: pinyin.STYLE_TONE2 })[0];
+        const pyToneNumber = pyTone.toString().slice(-1);
+        return `${pyToneNumber}${char}`;
+      });
+      return h;
+    }, {});
+  }
+
+  dumpSortedCharsToFile() {
+    const charactersToFile = Object.entries(this.chars)
       .map(([k, v]) => {
         let sortedChars = v.sort((a, b) => a[0] - b[0]);
 
         return [`${k}(${sortedChars.length})`, ...sortedChars];
       })
+      .filter((item) => item.length > 1)
       .sort((a, b) => b.length - a.length)
       .map((item) => item.join(", "));
 
-    const metadata = [`soundCount ${soundCount}`, `char count ${count}`];
+    const metadata = [
+      `soundCount ${this.soundCount}`,
+      `char count ${this.count}`,
+    ];
     const totalData = [...metadata, ...charactersToFile].join("\n");
-    fs.writeFileSync(`./${outputFileName}`, totalData, (err) => {
+    fs.writeFileSync(`./${this.outputFile}`, totalData, (err) => {
       // In case of a error throw err.
       if (err) throw err;
     });
-  } catch (e) {
-    console.log("Error:", e.stack);
+  }
+  readFile(fileName) {
+    var data = fs.readFileSync(`./${fileName}`, "utf8");
+    return data.split("\n");
   }
 }
 
-charBuilder("characters.txt", "output_characters.txt");
-charBuilder("characters_two.txt", "output_characters_two.txt");
+let cb = new CharBuilder("characters.txt", "output_characters.txt");
+cb.addCharsByPinYin();
+cb.filterCharsByFile("characters_sound.txt");
+cb.addStatistics();
+cb.addToneToChars();
+cb.dumpSortedCharsToFile();
 
-charBuilder(
-  "characters.txt",
-  "output_characters_sound.txt",
-  "characters_sound.txt"
-);
-charBuilder(
-  "characters_two.txt",
-  "output_characters_sound_two.txt",
-  "characters_sound.txt"
-);
+cb = new CharBuilder("characters.txt", "output_characters_glyph.txt");
+cb.addCharsByPinYin();
+cb.filterCharsByFile("characters_sound.txt", false);
+cb.addStatistics();
+cb.addToneToChars();
+cb.dumpSortedCharsToFile();
+
+cb = new CharBuilder("characters_two.txt", "output_characters_two.txt");
+cb.addCharsByPinYin();
+cb.filterCharsByFile("characters_sound.txt");
+cb.addStatistics();
+cb.addToneToChars();
+cb.dumpSortedCharsToFile();
+
+cb = new CharBuilder("characters_two.txt", "output_characters_glyph_two.txt");
+cb.addCharsByPinYin();
+cb.filterCharsByFile("characters_sound.txt", false);
+cb.addStatistics();
+cb.addToneToChars();
+cb.dumpSortedCharsToFile();
