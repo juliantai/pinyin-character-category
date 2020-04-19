@@ -13,13 +13,16 @@ class CharBuilder {
   addCharsByPinYin() {
     const chars = this.readFile(this.inputFile);
     this.chars = chars.reduce((h, char) => {
-      const py = pinyin(char, { style: pinyin.STYLE_NORMAL })[0];
-      if (py) {
-        if (!h[py]) {
-          h[py] = [];
+      const py = pinyin(char, { style: pinyin.STYLE_NORMAL, heteronym: true });
+      py.forEach((item) => {
+        if (item) {
+          if (!h[item]) {
+            h[item] = [];
+          }
+          h[item].push(char);
         }
-        h[py].push(char);
-      }
+      });
+
       return h;
     }, {});
   }
@@ -78,8 +81,8 @@ class CharBuilder {
       .map((item) => item.join(", "));
 
     const metadata = [
-      `soundCount ${this.soundCount}`,
-      `char count ${this.count}`,
+      `soundRowCount ${this.soundCount}`,
+      `charBySoundCount ${this.count}`,
     ];
     const totalData = [...metadata, ...charactersToFile].join("\n");
     fs.writeFileSync(`./${this.outputFile}`, totalData, (err) => {
