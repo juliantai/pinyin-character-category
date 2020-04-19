@@ -29,8 +29,8 @@ class CharBuilder {
     this.chars = Object.entries(this.chars).reduce((h, [py, charItems]) => {
       if (params.filterType === "identify") {
         h[py] = charItems.map((char) => {
-          if (filterChars.indexOf(char) < 0) {
-            return `${char}*`;
+          if (filterChars.indexOf(char) > -1) {
+            return `${char}+`;
           }
           return char;
         });
