@@ -24,11 +24,11 @@ class CharBuilder {
     }, {});
   }
 
-  filterCharsByFile(inputFile, include = true) {
+  filterCharsByFile(inputFile, params = { include: true }) {
     const filterChars = this.readFile(inputFile);
     this.chars = Object.entries(this.chars).reduce((h, [py, charItems]) => {
       h[py] = charItems.filter((char) => {
-        if (include) {
+        if (params.include) {
           return filterChars.indexOf(char) > -1;
         }
         return filterChars.indexOf(char) < 0;
@@ -91,7 +91,7 @@ cb.dumpSortedCharsToFile();
 
 cb = new CharBuilder("characters.txt", "output_characters_glyph.txt");
 cb.addCharsByPinYin();
-cb.filterCharsByFile("characters_sound.txt", false);
+cb.filterCharsByFile("characters_sound.txt", { include: false });
 cb.addStatistics();
 cb.addToneToChars();
 cb.dumpSortedCharsToFile();
@@ -105,7 +105,7 @@ cb.dumpSortedCharsToFile();
 
 cb = new CharBuilder("characters_two.txt", "output_characters_glyph_two.txt");
 cb.addCharsByPinYin();
-cb.filterCharsByFile("characters_sound.txt", false);
+cb.filterCharsByFile("characters_sound.txt", { include: false });
 cb.addStatistics();
 cb.addToneToChars();
 cb.dumpSortedCharsToFile();
